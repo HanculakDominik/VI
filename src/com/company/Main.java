@@ -7,31 +7,43 @@ import java.util.regex.Pattern;
 
 //regex: (?!\[\[[^#]*\]\])\[\[[^\|]*#[^\]]*]]
 public class Main {
-    static String title;
-    static void parserRedirectov() {
+    private static void parserRedirectov() {
+
         try {
             File myObj = new File("skratenaVerzia.xml");
             Scanner myReader = new Scanner(myObj);
+            String title = "";
+            boolean isRedirect = false;
+            String redirect = null;
+            String regex = "(?!\\[\\[[^#]*\\]\\])\\[\\[[^\\|]*#[^\\]]+]]";
             while (myReader.hasNextLine()) {
                 String data = myReader.nextLine();
                 if(data.contains("<title>")) {
                     title = data;
+                    isRedirect = false;
+                    redirect = null;
                 }
-                String regex = "(?!\\[\\[[^#]*\\]\\])\\[\\[[^\\|]*#[^\\]]+]]";
+                isRedirect = data.contains("<redirect title=") || isRedirect;
 
                 Pattern pattern = Pattern.compile(regex);
-                Matcher matcher
-                        = pattern
-                        .matcher(data);
+                Matcher matcher = pattern.matcher(data);
 
                 while (matcher.find()) {
-
-                    if(matcher.group().indexOf("#") == 2) {
+                    if (matcher.group().indexOf("#") == 2) {
                         title = title.replace("<title>", "")
                                 .replace("</title>", "").trim();
-                        System.out.println(title);
+                        System.out.println(title + "::" + matcher.group());
+                    } else if (isRedirect) {
+                        if(redirect == null) {
+                             title = title.replace("<title>", "")
+                                    .replace("</title>", "").trim();
+                            redirect = matcher.group();
+                            System.out.println(title + "++" + redirect);
+                        }
+                    } else {
+                        System.out.println(matcher.group());
                     }
-                    System.out.println(matcher.group());
+
 
                 }
             }
