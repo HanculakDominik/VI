@@ -1,12 +1,23 @@
 package com.company;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 //regex: (?!\[\[[^#]*\]\])\[\[[^\|]*#[^\]]*]]
+class Page{
+    public String title;
+    public ArrayList<String> sections;
+    public Page(String title, String section){
+        this.title = title;
+        this.sections = new ArrayList<>();
+        this.sections.add(section);
+    }
+}
 public class Main {
+    private static ArrayList<Page> linkedPages = new ArrayList<>();
     private static void parserRedirectov() {
 
         try {
@@ -29,19 +40,21 @@ public class Main {
                 Matcher matcher = pattern.matcher(data);
 
                 while (matcher.find()) {
-                    if (matcher.group().indexOf("#") == 2) {
+                    String found = matcher.group().substring(0,matcher.group().length() -2).substring(2);
+                    if (found.indexOf("#") == 0) {
                         title = title.replace("<title>", "")
                                 .replace("</title>", "").trim();
-                        System.out.println(title + "::" + matcher.group());
+                        found = title + found;
+                        saveLink(found);
                     } else if (isRedirect) {
                         if(redirect == null) {
                              title = title.replace("<title>", "")
                                     .replace("</title>", "").trim();
-                            redirect = matcher.group();
-                            System.out.println(title + "++" + redirect);
+                            redirect = found;
+                            saveLink(found);
                         }
                     } else {
-                        System.out.println(matcher.group());
+                        saveLink(found);
                     }
 
 
@@ -51,6 +64,24 @@ public class Main {
         } catch (FileNotFoundException e) {
             System.out.println("An error occurred.");
             e.printStackTrace();
+        }
+        linkedPages.forEach(page -> System.out.println(page.title));
+    }
+
+    private static void saveLink(String link){
+
+        int index = link.indexOf("#");
+        String pageTitle = link.substring(0,index);
+        String sectionName = link.substring(index + 1);
+        boolean isThere = false;
+        for (Page var: linkedPages) {
+            if(var.title.equals(pageTitle)) {
+                var.sections.add(sectionName);
+                isThere = true;
+            }
+        }
+        if(!isThere) {
+            linkedPages.add(new Page(pageTitle,sectionName));
         }
     }
     public static void main(String[] args) {
