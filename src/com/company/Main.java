@@ -2,6 +2,7 @@ package com.company;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,6 +25,7 @@ public class Main {
             File myObj = new File("skratenaVerzia.xml");
             Scanner myReader = new Scanner(myObj);
             String title = "";
+            int lastIndex = -1;
             boolean isRedirect = false;
             String redirect = null;
             String regex = "(?!\\[\\[[^#]*\\]\\])\\[\\[[^\\|]*#[^\\]]+]]";
@@ -45,16 +47,16 @@ public class Main {
                         title = title.replace("<title>", "")
                                 .replace("</title>", "").trim();
                         found = title + found;
-                        saveLink(found);
+                        lastIndex = saveLink(found,lastIndex);
                     } else if (isRedirect) {
                         if(redirect == null) {
                              title = title.replace("<title>", "")
                                     .replace("</title>", "").trim();
                             redirect = found;
-                            saveLink(found);
+                            lastIndex = saveLink(found,lastIndex);
                         }
                     } else {
-                        saveLink(found);
+                        lastIndex = saveLink(found,lastIndex);
                     }
 
 
@@ -66,23 +68,28 @@ public class Main {
             e.printStackTrace();
         }
         linkedPages.forEach(page -> System.out.println(page.title));
+        System.out.println(linkedPages.size());
     }
 
-    private static void saveLink(String link){
-
-        int index = link.indexOf("#");
-        String pageTitle = link.substring(0,index);
-        String sectionName = link.substring(index + 1);
-        boolean isThere = false;
-        for (Page var: linkedPages) {
-            if(var.title.equals(pageTitle)) {
-                var.sections.add(sectionName);
-                isThere = true;
+    private static int saveLink(String link, int lastIndex){
+        int hashtagIndex = link.indexOf("#");
+        String pageTitle = link.substring(0,hashtagIndex);
+        String sectionName = link.substring(hashtagIndex + 1);
+        if(lastIndex != -1 && linkedPages.get(lastIndex).title.equals(pageTitle)) {
+            linkedPages.get(lastIndex).sections.add(sectionName);
+            return lastIndex;
+        } else {
+            int c = 0;
+            for (Page var : linkedPages) {
+                if (var.title.equals(pageTitle)) {
+                    var.sections.add(sectionName);
+                    return c;
+                }
+                c++;
             }
         }
-        if(!isThere) {
-            linkedPages.add(new Page(pageTitle,sectionName));
-        }
+        linkedPages.add(new Page(pageTitle,sectionName));
+        return linkedPages.size() - 1;
     }
     public static void main(String[] args) {
         parserRedirectov();
