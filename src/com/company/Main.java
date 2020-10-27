@@ -1,11 +1,13 @@
 package com.company;
+import org.json.simple.JSONObject;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.io.FileWriter;
 
 //regex: (?!\[\[[^#]*\]\])\[\[[^\|]*#[^\]]*]]
 class Page{
@@ -19,10 +21,12 @@ class Page{
 }
 public class Main {
     private static ArrayList<Page> linkedPages = new ArrayList<>();
+
     private static void parserRedirectov() {
 
         try {
             File myObj = new File("skratenaVerzia.xml");
+            FileWriter alternativeNames = new FileWriter("alternativeNames.json");
             Scanner myReader = new Scanner(myObj);
             String title = "";
             int lastIndex = -1;
@@ -53,6 +57,8 @@ public class Main {
                              title = title.replace("<title>", "")
                                     .replace("</title>", "").trim();
                             redirect = found;
+                            alternativeNames.write(title + "|" + redirect + "\n");
+                            alternativeNames.flush();
                             lastIndex = saveLink(found,lastIndex);
                         }
                     } else {
@@ -65,6 +71,8 @@ public class Main {
             myReader.close();
         } catch (FileNotFoundException e) {
             System.out.println("An error occurred.");
+            e.printStackTrace();
+        } catch (IOException e) {
             e.printStackTrace();
         }
         linkedPages.forEach(page -> System.out.println(page.title));
@@ -91,7 +99,7 @@ public class Main {
         linkedPages.add(new Page(pageTitle,sectionName));
         return linkedPages.size() - 1;
     }
-    private static void sections(){
+    private static void sections() {
         try {
             File myObj = new File("skratenaVerzia.xml");
             Scanner myReader = new Scanner(myObj);
@@ -101,7 +109,8 @@ public class Main {
             String text = "";
             Page linkedPage = null;
             boolean write = false;
-
+            JSONObject obj = new JSONObject();
+            FileWriter jsonFile = new FileWriter("Sections.json");
             while (myReader.hasNextLine()) {
                 String data = myReader.nextLine();
                 Matcher matcher = pattern.matcher(data);
@@ -119,7 +128,8 @@ public class Main {
                 if (linkedPage != null) {
                     if (matcher.find()) {
                         if (write){
-                            System.out.println(text);
+                            obj.put("Text", text);
+                            saveSections(jsonFile, obj);
                             text = "";
                         }
                         write = false;
@@ -129,14 +139,16 @@ public class Main {
                         for (String var: linkedPage.sections) {
                             if (var.equals(sectionName)) {
                                 write = true;
-                                System.out.println(linkedPage.title + "#" + sectionName);
+                                obj = new JSONObject();
+                                obj.put("Name", linkedPage.title + "#" + sectionName);
                                 break;
                             }
                         }
                     } else if (write) {
                         if (data.startsWith("{{") || data.startsWith("[[Kategória:")){
                             write = false;
-                            System.out.println(text);
+                            obj.put("Text", text);
+                            saveSections(jsonFile, obj);
                             text = "";
                         } else {
                             text += data;
@@ -147,6 +159,17 @@ public class Main {
             }
         } catch (FileNotFoundException e) {
             System.out.println("An error occurred.");
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    private static void saveSections(FileWriter file, JSONObject obj) {
+        try {
+            file.write(obj.toJSONString());
+            System.out.println(obj);
+            file.flush();
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
