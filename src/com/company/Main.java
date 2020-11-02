@@ -21,11 +21,11 @@ class Page{
 }
 public class Main {
     private static ArrayList<Page> linkedPages = new ArrayList<>();
-
+    private static int counter = 0;
     private static void parserRedirectov() {
 
         try {
-            File myObj = new File("skratenaVerzia.xml");
+            File myObj = new File("skwiki-latest-pages-articles.xml");
             FileWriter alternativeNames = new FileWriter("alternativeNames.json");
             Scanner myReader = new Scanner(myObj);
             String title = "";
@@ -34,6 +34,7 @@ public class Main {
             String redirect = null;
             String regex = "(?!\\[\\[[^#]*\\]\\])\\[\\[[^\\|]*#[^\\]]+]]";
             while (myReader.hasNextLine()) {
+                counter++;
                 String data = myReader.nextLine();
                 if(data.contains("<title>")) {
                     title = data;
@@ -75,7 +76,7 @@ public class Main {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        linkedPages.forEach(page -> System.out.println(page.title));
+        //linkedPages.forEach(page -> System.out.println(page.title));
         System.out.println(linkedPages.size());
     }
 
@@ -96,12 +97,13 @@ public class Main {
                 c++;
             }
         }
+        System.out.println(counter);
         linkedPages.add(new Page(pageTitle,sectionName));
         return linkedPages.size() - 1;
     }
     private static void sections() {
         try {
-            File myObj = new File("skratenaVerzia.xml");
+            File myObj = new File("skwiki-latest-pages-articles.xml");
             Scanner myReader = new Scanner(myObj);
             String regex = "==.+==";
             Pattern pattern = Pattern.compile(regex);
@@ -112,6 +114,7 @@ public class Main {
             JSONObject obj = new JSONObject();
             FileWriter jsonFile = new FileWriter("Sections.json");
             while (myReader.hasNextLine()) {
+                counter--;
                 String data = myReader.nextLine();
                 Matcher matcher = pattern.matcher(data);
                 if (data.contains("<title>")) {
@@ -127,25 +130,27 @@ public class Main {
                 }
                 if (linkedPage != null) {
                     if (matcher.find()) {
-                        if (write){
-                            obj.put("Text", text);
-                            saveSections(jsonFile, obj);
-                            text = "";
-                        }
-                        write = false;
-                        sectionName = matcher.group()
-                                .replace("=====", "").replace("====", "")
-                                .replace("===", "").replace("==", "").trim();
-                        for (String var: linkedPage.sections) {
-                            if (var.equals(sectionName)) {
-                                write = true;
-                                obj = new JSONObject();
-                                obj.put("Name", linkedPage.title + "#" + sectionName);
-                                break;
+                        sectionName = matcher.group();
+
+                        if(sectionName.charAt(2) != '=') {
+                            sectionName = sectionName.replace("==", "").trim();
+                            if (write){
+                                obj.put("Text", text);
+                                saveSections(jsonFile, obj);
+                                text = "";
+                            }
+                            write = false;
+                            for (String var : linkedPage.sections) {
+                                if (var.equals(sectionName)) {
+                                    write = true;
+                                    obj = new JSONObject();
+                                    obj.put("Name", linkedPage.title + "#" + sectionName);
+                                    break;
+                                }
                             }
                         }
                     } else if (write) {
-                        if (data.startsWith("{{") || data.startsWith("[[Kategória:")){
+                        if (data.startsWith("[[Kategória:") || data.contains("</text>")){
                             write = false;
                             obj.put("Text", text);
                             saveSections(jsonFile, obj);
@@ -166,6 +171,7 @@ public class Main {
     }
     private static void saveSections(FileWriter file, JSONObject obj) {
         try {
+            System.out.println(counter);
             file.write(obj.toJSONString());
             System.out.println(obj);
             file.flush();
