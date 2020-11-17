@@ -26,7 +26,7 @@ public class Main {
 
         try {
             File myObj = new File("skwiki-latest-pages-articles.xml");
-            FileWriter alternativeNames = new FileWriter("alternativeNames.json");
+            FileWriter alternativeNames = new FileWriter("alternativeNames.txt");
             Scanner myReader = new Scanner(myObj);
             String title = "";
             int lastIndex = -1;
@@ -58,6 +58,10 @@ public class Main {
                              title = title.replace("<title>", "")
                                     .replace("</title>", "").trim();
                             redirect = found;
+                            int nameIndex = redirect.indexOf("|");
+                            if(nameIndex != -1){
+                                redirect = redirect.substring(0,nameIndex);
+                            }
                             alternativeNames.write(title + "|" + redirect + "\n");
                             alternativeNames.flush();
                             lastIndex = saveLink(found,lastIndex);
@@ -81,6 +85,10 @@ public class Main {
     }
 
     private static int saveLink(String link, int lastIndex){
+        int nameIndex = link.indexOf("|");
+        if(nameIndex != -1){
+            link = link.substring(0,nameIndex);
+        }
         int hashtagIndex = link.indexOf("#");
         String pageTitle = link.substring(0,hashtagIndex);
         String sectionName = link.substring(hashtagIndex + 1);
