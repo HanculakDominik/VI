@@ -1,5 +1,6 @@
 package com.company;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.ParseException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -8,6 +9,7 @@ import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.io.FileWriter;
+
 
 //regex: (?!\[\[[^#]*\]\])\[\[[^\|]*#[^\]]*]]
 class Page{
@@ -25,7 +27,7 @@ public class Main {
     private static void parserRedirectov() {
 
         try {
-            File myObj = new File("skwiki-latest-pages-articles.xml");
+            File myObj = new File("skratena.xml");
             FileWriter alternativeNames = new FileWriter("alternativeNames.txt");
             Scanner myReader = new Scanner(myObj);
             String title = "";
@@ -111,7 +113,7 @@ public class Main {
     }
     private static void sections() {
         try {
-            File myObj = new File("skwiki-latest-pages-articles.xml");
+            File myObj = new File("skratena.xml");
             Scanner myReader = new Scanner(myObj);
             String regex = "==.+==";
             Pattern pattern = Pattern.compile(regex);
@@ -119,8 +121,11 @@ public class Main {
             String text = "";
             Page linkedPage = null;
             boolean write = false;
+            int index = -1;
             JSONObject obj = new JSONObject();
             FileWriter jsonFile = new FileWriter("Sections.json");
+            jsonFile.write('[');
+            jsonFile.flush();
             while (myReader.hasNextLine()) {
                 counter--;
                 String data = myReader.nextLine();
@@ -139,30 +144,47 @@ public class Main {
                 if (linkedPage != null) {
                     if (matcher.find()) {
                         sectionName = matcher.group();
-
-                        if(sectionName.charAt(2) != '=') {
-                            sectionName = sectionName.replace("==", "").trim();
-                            if (write){
+                        int aindex = -1;
+                        if(sectionName.charAt(4) == '='){
+                            aindex = 4;
+                        } else if(sectionName.charAt(3) == '='){
+                            aindex = 3;
+                        } else if(sectionName.charAt(2) == '='){
+                            aindex = 2;
+                        } else if(sectionName.charAt(1) == '='){
+                            aindex = 1;
+                        }
+                        if( index == -1 || index == aindex) {
+                            sectionName = sectionName.replace("=====", "").replace("====", "")
+                                    .replace("===", "").replace("==", "").trim();
+                            if (write) {
                                 obj.put("Text", text);
                                 saveSections(jsonFile, obj);
                                 text = "";
+                                index = -1;
+                                write = false;
                             }
-                            write = false;
+
                             for (String var : linkedPage.sections) {
                                 if (var.equals(sectionName)) {
                                     write = true;
+                                    index = aindex;
                                     obj = new JSONObject();
                                     obj.put("Name", linkedPage.title + "#" + sectionName);
                                     break;
                                 }
                             }
+                        } else {
+                            text += data;
                         }
+
                     } else if (write) {
                         if (data.startsWith("[[Kategória:") || data.contains("</text>")){
                             write = false;
                             obj.put("Text", text);
                             saveSections(jsonFile, obj);
                             text = "";
+                            index = -1;
                         } else {
                             text += data;
                         }
@@ -170,6 +192,8 @@ public class Main {
                 }
 
             }
+            jsonFile.write(']');
+            jsonFile.flush();
         } catch (FileNotFoundException e) {
             System.out.println("An error occurred.");
             e.printStackTrace();
@@ -180,16 +204,18 @@ public class Main {
     private static void saveSections(FileWriter file, JSONObject obj) {
         try {
             System.out.println(counter);
-            file.write(obj.toJSONString());
+            file.write(obj.toJSONString() + ',');
             System.out.println(obj);
             file.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException, ParseException {
+
         parserRedirectov();
         sections();
+        Index.createIndex();
     }
 }
 
