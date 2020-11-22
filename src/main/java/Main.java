@@ -23,10 +23,11 @@ class Page{
 public class Main {
     private static ArrayList<Page> linkedPages = new ArrayList<>();
     private static int counter = 0;
+    private final static String inputFilePath = "data/skwiki-latest-pages-articles.xml";
     private static void parserRedirectov() {
 
         try {
-            File myObj = new File("skratena.xml");
+            File myObj = new File(inputFilePath);
             FileWriter alternativeNames = new FileWriter("alternativeNames.txt");
             Scanner myReader = new Scanner(myObj);
             String title = "";
@@ -112,7 +113,7 @@ public class Main {
     }
     private static void sections() {
         try {
-            File myObj = new File("skratena.xml");
+            File myObj = new File(inputFilePath);
             Scanner myReader = new Scanner(myObj);
             String regex = "==.+==";
             Pattern pattern = Pattern.compile(regex);
@@ -174,7 +175,7 @@ public class Main {
                                 }
                             }
                         } else {
-                            text += data;
+                            text += data + "\n";
                         }
 
                     } else if (write) {
@@ -185,7 +186,7 @@ public class Main {
                             text = "";
                             index = -1;
                         } else {
-                            text += data;
+                            text += data + "\n";
                         }
                     }
                 }
@@ -212,9 +213,24 @@ public class Main {
     }
     public static void main(String[] args) throws IOException, ParseException {
 
-        parserRedirectov();
-        sections();
-        Index.createIndex();
+        Scanner in = new Scanner(System.in);
+
+        if (!(new File("Sections.json")).exists()) {
+            parserRedirectov();
+            sections();
+            Index.createIndex();
+        }
+
+        while (true) {
+            System.out.println("Vložte odkaz('s' - to stop): ");
+            String input = in.nextLine();
+
+            if(input.equals("s"))
+                break;
+
+            Index.getSection(input);
+        }
+
     }
 }
 
