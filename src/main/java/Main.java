@@ -23,7 +23,7 @@ class Page{
 public class Main {
     private static ArrayList<Page> linkedPages = new ArrayList<>();
     private static int counter = 0;
-    private final static String inputFilePath = "data/skwiki-latest-pages-articles.xml";
+    private final static String inputFilePath = "skratenaVerzia.xml";
     private static void parserRedirectov() {
 
         try {
@@ -36,7 +36,6 @@ public class Main {
             String redirect = null;
             String regex = "(?!\\[\\[[^#]*\\]\\])\\[\\[[^\\|]*#[^\\]]+]]";
             while (myReader.hasNextLine()) {
-                counter++;
                 String data = myReader.nextLine();
                 if(data.contains("<title>")) {
                     title = data;
@@ -95,19 +94,44 @@ public class Main {
         String pageTitle = link.substring(0,hashtagIndex);
         String sectionName = link.substring(hashtagIndex + 1);
         if(lastIndex != -1 && linkedPages.get(lastIndex).title.equals(pageTitle)) {
-            linkedPages.get(lastIndex).sections.add(sectionName);
+            boolean exists = false;
+            for (String var : linkedPages.get(lastIndex).sections){
+                if(var.equals(sectionName)){
+                    exists = true;
+                    break;
+                }
+            }
+           if(!exists) {
+               linkedPages.get(lastIndex).sections.add(sectionName);
+               System.out.println(sectionName);
+               counter++;
+           }
+
             return lastIndex;
         } else {
             int c = 0;
             for (Page var : linkedPages) {
                 if (var.title.equals(pageTitle)) {
-                    var.sections.add(sectionName);
+                    boolean exists = false;
+                    for (String section : var.sections){
+                        if(var.equals(sectionName)){
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if(!exists) {
+                        var.sections.add(sectionName);
+                        System.out.println(sectionName);
+                        counter++;
+//                        System.out.println(counter);
+                    }
+
                     return c;
                 }
                 c++;
             }
         }
-        System.out.println(counter);
+
         linkedPages.add(new Page(pageTitle,sectionName));
         return linkedPages.size() - 1;
     }
@@ -122,12 +146,12 @@ public class Main {
             Page linkedPage = null;
             boolean write = false;
             int index = -1;
-            JSONObject obj = new JSONObject();
+//            JSONObject obj = new JSONObject();
             FileWriter jsonFile = new FileWriter("Sections.json");
             jsonFile.write('[');
             jsonFile.flush();
+            ArrayList<JSONObject> active = new ArrayList<>();
             while (myReader.hasNextLine()) {
-                counter--;
                 String data = myReader.nextLine();
                 Matcher matcher = pattern.matcher(data);
                 if (data.contains("<title>")) {
@@ -154,39 +178,48 @@ public class Main {
                         } else if(sectionName.charAt(1) == '='){
                             aindex = 1;
                         }
-                        if( index == -1 || index == aindex) {
-                            sectionName = sectionName.replace("=====", "").replace("====", "")
-                                    .replace("===", "").replace("==", "").trim();
-                            if (write) {
-                                obj.put("Text", text);
-                                saveSections(jsonFile, obj);
-                                text = "";
-                                index = -1;
-                                write = false;
-                            }
-
-                            for (String var : linkedPage.sections) {
-                                if (var.equals(sectionName)) {
-                                    write = true;
-                                    index = aindex;
-                                    obj = new JSONObject();
-                                    obj.put("Name", linkedPage.title + "#" + sectionName);
-                                    break;
+//                        System.out.println(linkedPage.sections.size());
+                        for (JSONObject obj: active) {
+                            if ((int)obj.get("Level") >= aindex) {
+                                if (write) {
+                                    saveSections(jsonFile, obj);
+                                    obj.replace("Level", -1);
+//                                    write = false;
                                 }
+
+                            } else {
+                                obj.replace("Text", obj.get("Text") + data + "\n");
                             }
-                        } else {
-                            text += data + "\n";
                         }
+                        active.removeIf(o -> (int)o.get("Level") == -1);
+
+                        sectionName = sectionName.replace("=====", "").replace("====", "")
+                                .replace("===", "").replace("==", "").trim();
+                        for (String var : linkedPage.sections) {
+                            if (var.equals(sectionName)) {
+                                System.out.println("True");
+                                write = true;
+                                JSONObject obj = new JSONObject();
+                                obj.put("Level", aindex);
+                                obj.put("Name", linkedPage.title + "#" + sectionName);
+                                obj.put("Text", "");
+                                active.add(obj);
+                                break;
+                            }
+                        }
+
 
                     } else if (write) {
                         if (data.startsWith("[[Kategória:") || data.contains("</text>")){
+                            for (JSONObject obj: active) {
+                                saveSections(jsonFile, obj);
+                            }
+                            active.clear();
                             write = false;
-                            obj.put("Text", text);
-                            saveSections(jsonFile, obj);
-                            text = "";
-                            index = -1;
                         } else {
-                            text += data + "\n";
+                            for (JSONObject obj: active) {
+                                obj.replace("Text", obj.get("Text") + data + "\n");
+                            }
                         }
                     }
                 }
@@ -203,7 +236,9 @@ public class Main {
     }
     private static void saveSections(FileWriter file, JSONObject obj) {
         try {
+            counter--;
             System.out.println(counter);
+            System.out.println("tu som");
             file.write(obj.toJSONString() + ',');
             System.out.println(obj);
             file.flush();
@@ -228,7 +263,9 @@ public class Main {
             if(input.equals("s"))
                 break;
 
-            Index.getSection(input);
+            JSONObject section = Index.getSection(input);
+            System.out.println(section.get("Name"));
+            System.out.println(section.get("Text"));
         }
 
     }
