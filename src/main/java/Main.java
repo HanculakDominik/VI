@@ -10,7 +10,6 @@ import java.util.regex.Pattern;
 import java.io.FileWriter;
 
 
-//regex: (?!\[\[[^#]*\]\])\[\[[^\|]*#[^\]]*]]
 class Page{
     public String title;
     public ArrayList<String> sections;
@@ -23,12 +22,15 @@ class Page{
 public class Main {
     private static ArrayList<Page> linkedPages = new ArrayList<>();
     private static int counter = 0;
-    private final static String inputFilePath = "skratenaVerzia.xml";
+    private final static String inputFilePath = "data/skwiki-latest-pages-articles.xml";
+
     private static void parserRedirectov() {
 
         try {
             File myObj = new File(inputFilePath);
-            FileWriter alternativeNames = new FileWriter("alternativeNames.txt");
+            FileWriter alternativeNames = new FileWriter("AlternativeNames.json");
+            alternativeNames.write('[');
+            alternativeNames.flush();
             Scanner myReader = new Scanner(myObj);
             String title = "";
             int lastIndex = -1;
@@ -63,7 +65,13 @@ public class Main {
                             if(nameIndex != -1){
                                 redirect = redirect.substring(0,nameIndex);
                             }
-                            alternativeNames.write(title + "|" + redirect + "\n");
+                            JSONObject obj = new JSONObject();
+                            obj.put("PageName", title);
+                            int hashtagIndex = redirect.indexOf("#");
+                            obj.put("RePageName", redirect.substring(0,hashtagIndex));
+                            obj.put("ReSectionName", redirect.substring(hashtagIndex+1));
+                            alternativeNames.write(obj.toJSONString() + ',');
+//                            alternativeNames.write(title + "|" + redirect + "\n");
                             alternativeNames.flush();
                             lastIndex = saveLink(found,lastIndex);
                         }
@@ -73,7 +81,10 @@ public class Main {
 
 
                 }
+
             }
+            alternativeNames.write(']');
+            alternativeNames.flush();
             myReader.close();
         } catch (FileNotFoundException e) {
             System.out.println("An error occurred.");
@@ -103,8 +114,8 @@ public class Main {
             }
            if(!exists) {
                linkedPages.get(lastIndex).sections.add(sectionName);
-               System.out.println(sectionName);
                counter++;
+               System.out.println(counter);
            }
 
             return lastIndex;
@@ -113,17 +124,16 @@ public class Main {
             for (Page var : linkedPages) {
                 if (var.title.equals(pageTitle)) {
                     boolean exists = false;
-                    for (String section : var.sections){
-                        if(var.equals(sectionName)){
+                    for (String section : var.sections) {
+                        if(section.equals(sectionName)) {
                             exists = true;
                             break;
                         }
                     }
                     if(!exists) {
                         var.sections.add(sectionName);
-                        System.out.println(sectionName);
                         counter++;
-//                        System.out.println(counter);
+                        System.out.println(counter);
                     }
 
                     return c;
@@ -197,12 +207,14 @@ public class Main {
                                 .replace("===", "").replace("==", "").trim();
                         for (String var : linkedPage.sections) {
                             if (var.equals(sectionName)) {
-                                System.out.println("True");
                                 write = true;
                                 JSONObject obj = new JSONObject();
                                 obj.put("Level", aindex);
-                                obj.put("Name", linkedPage.title + "#" + sectionName);
+                                obj.put("PageName", linkedPage.title);
+                                obj.put("SectionName", sectionName);
+//                                obj.put("Name", linkedPage.title + "#" + sectionName);
                                 obj.put("Text", "");
+//                                System.out.println(linkedPage.title);
                                 active.add(obj);
                                 break;
                             }
@@ -238,9 +250,8 @@ public class Main {
         try {
             counter--;
             System.out.println(counter);
-            System.out.println("tu som");
             file.write(obj.toJSONString() + ',');
-            System.out.println(obj);
+//            System.out.println(obj.toJSONString());
             file.flush();
         } catch (IOException e) {
             e.printStackTrace();
@@ -253,19 +264,92 @@ public class Main {
         if (!(new File("Sections.json")).exists()) {
             parserRedirectov();
             sections();
-//            Index.createIndex();
+            Index.createIndex("Sections.json","documents");
+            Index.createIndex("AlternativeNames.json","alt_names");
         }
-
-        while (true) {
-            System.out.println("Vložte odkaz('s' - to stop): ");
+        boolean running = true;
+        while (running) {
+            System.out.println("\n---------- Menu ----------\n" +
+                    "0 - Koniec\n" +
+                    "1 - Hľadať podla názvu stránky\n" +
+                    "2 - Hľadať podľa názvu sekcie\n" +
+                    "3 - Hľadať podľa názvu stránky a sekcie\n" +
+                    "4 - Štatistiky");
             String input = in.nextLine();
+            try {
+                switch (Integer.parseInt(input)) {
+                    case 0: {
+                        running = false;
+                        break;
+                    }
+                    case 1: {
+                        System.out.println("Zadajte názov stránky:");
+                        input = in.nextLine();
+                        ArrayList<JSONObject> objects = Index.getSection(input, null, "documents");
+                        if (objects.size() != 0) {
+                            System.out.println("Názvy sekcií, ktoré sa nachádzajú na stránke:");
+                            for (JSONObject o : objects) {
+                                System.out.println(o.get("SectionName"));
+                            }
+                        } else {
+                            objects = Index.getSection(input, null, "alt_names");
+                            for (JSONObject o : objects) {
+                                ArrayList<JSONObject> documents = Index.getSection((String) o.get("RePageName"),
+                                        (String) o.get("ReSectionName"), "documents");
+                                for (JSONObject doc : documents) {
+                                    System.out.println("-----------" + doc.get("PageName")
+                                            + "#" + doc.get("SectionName") + "-----------\n");
+                                    System.out.println(doc.get("Text"));
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    case 2: {
+                        System.out.println("Zadajte názov sekcie:");
+                        input = in.nextLine();
+                        ArrayList<JSONObject> objects = Index.getSection(null, input, "documents");
+                        for (JSONObject o : objects) {
+                            System.out.println(o.get("PageName"));
+                        }
+                        break;
+                    }
+                    case 3: {
+                        System.out.println("Zadajte názov stránky:");
+                        String pageName = in.nextLine();
+                        System.out.println("Zadajte názov sekcie:");
+                        String sectionName = in.nextLine();
+                        ArrayList<JSONObject> objects = Index.getSection(pageName, sectionName, "documents");
+                        for (JSONObject o : objects) {
+                            System.out.println(o.get("PageName") + "#" + o.get("SectionName"));
+                            System.out.println(o.get("Text"));
+                        }
+                        break;
+                    }
+                    case 4: {
 
-            if(input.equals("s"))
-                break;
+                        ArrayList<String> terms = Index.getStatistics("PageName");
+                        System.out.println("Top 10 názvov stránok:");
+                        for (int i = 0; i < terms.size(); i++) {
+                            System.out.println((i + 1) + ". " + terms.get(i));
+                        }
 
-            JSONObject section = Index.getSection(input);
-            System.out.println(section.get("Name"));
-            System.out.println(section.get("Text"));
+                        System.out.println("\n");
+
+                        terms = Index.getStatistics("SectionName");
+                        System.out.println("Top 10 názvov sekcií:");
+                        for (int i = 0; i < terms.size(); i++) {
+                            System.out.println((i + 1) + ". " + terms.get(i));
+                        }
+
+                        break;
+                    }
+
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Prosím vložte číslo");
+            }
+
         }
 
     }
