@@ -34,7 +34,7 @@ public class Main {
             int lastIndex = -1;
             boolean isRedirect = false;
             String redirect = null;
-            String regex = "(?!\\[\\[[^#]*\\]\\])\\[\\[[^\\|]*#[^\\]]+]]";
+            String regex = "(?!\\[\\[[^#]*\\]\\])\\[\\[[^\\|\\[]*#[^\\]]+\\]\\]";
             while (myReader.hasNextLine()) {
                 String data = myReader.nextLine();
                 if(data.contains("<title>")) {
@@ -253,7 +253,7 @@ public class Main {
         if (!(new File("Sections.json")).exists()) {
             parserRedirectov();
             sections();
-            Index.createIndex();
+//            Index.createIndex();
         }
 
         while (true) {
