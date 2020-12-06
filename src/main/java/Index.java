@@ -1,5 +1,4 @@
 import org.apache.http.HttpHost;
-import org.apache.lucene.index.Term;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.index.IndexRequest;
@@ -14,7 +13,6 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
@@ -26,11 +24,17 @@ import org.json.simple.parser.ParseException;
 
 import java.io.FileReader;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 public class Index {
-
+    /**
+     * This method creates index and indices from json file.
+     *
+     * @param file      Name of file from which are json objects extracted for indexing
+     * @param indexName Name of elasticsearch index
+     * @throws IOException    Exceptions from file reading
+     * @throws ParseException Exceptions from json parser
+     */
     public static void createIndex(String file, String indexName) throws IOException, ParseException {
         JSONParser parser = new JSONParser();
         JSONArray jsonArray = (JSONArray) parser.parse(new FileReader(file));
@@ -62,7 +66,17 @@ public class Index {
 
     }
 
-    public static ArrayList<JSONObject> getSection(String pageName, String sectionName,String indexName) throws IOException, ParseException {
+    /**
+     * This method uses Search API of elastic to search sections using indexes.
+     *
+     * @param pageName    Name of page
+     * @param sectionName Name of section
+     * @param indexName   Name of index
+     * @return List of json objects from response from elasticsearch
+     * @throws IOException    Exceptions from RestHighLevelClient search
+     * @throws ParseException Exceptions from json parser
+     */
+    public static ArrayList<JSONObject> getSection(String pageName, String sectionName, String indexName) throws IOException, ParseException {
         RestHighLevelClient client = new RestHighLevelClient(
                 RestClient.builder(
                         new HttpHost("localhost", 9200, "http"),
@@ -72,7 +86,7 @@ public class Index {
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         searchRequest.indices(indexName);
 
-        if(pageName == null){
+        if (pageName == null) {
             sourceBuilder.query(QueryBuilders.termQuery("SectionName.keyword", sectionName));
         } else if (sectionName == null) {
             sourceBuilder.query(QueryBuilders.termQuery("PageName.keyword", pageName));
@@ -80,7 +94,7 @@ public class Index {
             BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
             boolQueryBuilder
                     .filter(QueryBuilders.termQuery("PageName.keyword", pageName))
-                    .filter(QueryBuilders.termQuery("SectionName.keyword",sectionName));
+                    .filter(QueryBuilders.termQuery("SectionName.keyword", sectionName));
             sourceBuilder.query(boolQueryBuilder);
         }
 
@@ -97,6 +111,13 @@ public class Index {
         return returnValue;
     }
 
+    /**
+     * This method returns array of statistics from field to print.
+     *
+     * @param field Name of field to returns statistics from
+     * @return List of strings with keys and number of occurrences
+     * @throws IOException Exceptions from RestHighLevelClient search
+     */
     public static ArrayList<String> getStatistics(String field) throws IOException {
         RestHighLevelClient client = new RestHighLevelClient(
                 RestClient.builder(
@@ -113,11 +134,11 @@ public class Index {
         SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
         Terms t = searchResponse.getAggregations().get("stats");
         ArrayList<String> returnValue = new ArrayList<>();
-        for (Terms.Bucket term: t.getBuckets()) {
+        for (Terms.Bucket term : t.getBuckets()) {
             returnValue.add(term.getKeyAsString() + " = " + term.getDocCount());
         }
         client.close();
-        return  returnValue;
+        return returnValue;
 
     }
 
