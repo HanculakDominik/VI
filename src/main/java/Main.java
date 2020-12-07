@@ -1,6 +1,5 @@
 import org.json.simple.JSONObject;
 import org.json.simple.parser.ParseException;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -23,7 +22,6 @@ class Page {
 
 public class Main {
     private static ArrayList<Page> linkedPages = new ArrayList<>();
-    private static int counter = 0;
     private final static String inputFilePath = "data/skwiki-latest-pages-articles.xml";
 
     /**
@@ -132,8 +130,6 @@ public class Main {
             }
             if (!exists) {
                 linkedPages.get(lastIndex).sections.add(sectionName);
-                counter++;
-                System.out.println(counter);
             }
             return lastIndex;
 
@@ -153,8 +149,6 @@ public class Main {
                     }
                     if (!exists) {
                         var.sections.add(sectionName);
-                        counter++;
-                        System.out.println(counter);
                     }
 
                     return index;
@@ -285,8 +279,6 @@ public class Main {
      */
     private static void saveSections(FileWriter writer, JSONObject obj) {
         try {
-            counter--;
-            System.out.println(counter);
             writer.write(obj.toJSONString() + ',');
             writer.flush();
         } catch (IOException e) {
@@ -331,7 +323,7 @@ public class Main {
                         input = in.nextLine();
                         ArrayList<JSONObject> objects = Index.getSection(input, null, "documents");
                         if (objects.size() != 0) {
-                            System.out.println("Názvy sekcií, ktoré sa nachádzajú na stránke:");
+                            System.out.println("\nNázvy sekcií, ktoré sa nachádzajú na stránke:");
                             for (JSONObject o : objects) {
                                 System.out.println(o.get("SectionName"));
                             }
@@ -353,6 +345,7 @@ public class Main {
                         System.out.println("Zadajte názov sekcie:");
                         input = in.nextLine();
                         ArrayList<JSONObject> objects = Index.getSection(null, input, "documents");
+                        System.out.println("\nNázvy stránok, ktoré obsahujú sekciu:");
                         for (JSONObject o : objects) {
                             System.out.println(o.get("PageName"));
                         }
