@@ -367,7 +367,7 @@ public class Main {
                     case 4: {
 
                         ArrayList<String> terms = Index.getStatistics("PageName");
-                        System.out.println("Top 10 názvov stránok:");
+                        System.out.println("Top 10 názvov stránok (Podľa počtu výskytov):");
                         for (int i = 0; i < terms.size(); i++) {
                             System.out.println((i + 1) + ". " + terms.get(i));
                         }
@@ -375,11 +375,18 @@ public class Main {
                         System.out.println("\n");
 
                         terms = Index.getStatistics("SectionName");
-                        System.out.println("Top 10 názvov sekcií:");
+                        System.out.println("Top 10 názvov sekcií (Podľa počtu výskytov):");
                         for (int i = 0; i < terms.size(); i++) {
                             System.out.println((i + 1) + ". " + terms.get(i));
                         }
 
+                        System.out.println("\n");
+
+                        terms = Index.getStatistics("Level");
+                        System.out.println("Počet výskytov úrovni nadpisov (1-4)");
+                        for (int i = 0; i < terms.size(); i++) {
+                            System.out.println((i + 1) + ". " + terms.get(i));
+                        }
                         break;
                     }
 

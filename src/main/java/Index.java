@@ -84,7 +84,9 @@ public class Index {
 
         SearchRequest searchRequest = new SearchRequest();
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.size(1000);
         searchRequest.indices(indexName);
+
 
         if (pageName == null) {
             sourceBuilder.query(QueryBuilders.termQuery("SectionName.keyword", sectionName));
@@ -126,8 +128,13 @@ public class Index {
 
         SearchRequest searchRequest = new SearchRequest();
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-        TermsAggregationBuilder aggregation = AggregationBuilders.terms("stats")
-                .field(field + ".keyword");
+        TermsAggregationBuilder aggregation = AggregationBuilders.terms("stats");
+        if(!field.equals("Level")) {
+
+            aggregation.field(field + ".keyword");
+        }else{
+            aggregation.field(field);
+        }
         sourceBuilder.aggregation(aggregation);
         searchRequest.indices("documents");
         searchRequest.source(sourceBuilder);
